@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+
+  # ── Frontend (Nginx) ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pfe-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - agent
+    networks:
+      - pfe-net
+    restart: unless-stopped
+
+  # ── AI Agent (FastAPI) ───────────────────────────────────────────
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pfe-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - MCP_SERVER_URL=http://mcp-server:8001
+    depends_on:
+      - mcp-server
+    volumes:
+      - ./agent:/app/agent      # hot-reload for dev
+    networks:
+      - pfe-net
+    restart: unless-stopped
+
+  # ── MCP Server (LaTeX/Overleaf Tool) ────────────────────────────
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: pfe-mcp-server
+    ports:
+      - "8001:8001"
+    environment:
+      - WORKSPACE_DIR=/workspace
+    volumes:
+      - latex-workspace:/workspace
+    networks:
+      - pfe-net
+    restart: unless-stopped
+
+volumes:
+  latex-workspace:
+    driver: local
+
+networks:
+  pfe-net:
+    driver: bridge

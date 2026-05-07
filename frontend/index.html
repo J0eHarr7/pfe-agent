@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PFE Agent — ENSA Marrakech</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#07090f;--sf:#0f1120;--sf2:#161929;--bd:#1e2435;--ac:#5c6ef8;--ac2:#f87c5c;--gr:#3dffa0;--yl:#f5d84e;--tx:#e4e8f5;--mu:#5a6080;--r:8px;--mono:'Space Mono',monospace;--ui:'Syne',sans-serif}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--ui)}
+.app{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+/* Sidebar */
+.sb{background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--bd)}
+.logo h1{font-size:16px;font-weight:800;letter-spacing:-.5px}.logo h1 span{color:var(--ac)}
+.logo p{font-size:10px;color:var(--mu);font-family:var(--mono);margin-top:2px}
+.steps{padding:12px 0;flex:1}
+.step{display:flex;align-items:center;gap:9px;padding:8px 18px;cursor:pointer;font-size:11px;font-weight:700;color:var(--mu);border-left:3px solid transparent;transition:all .15s;line-height:1.3}
+.step:hover{color:var(--tx);background:rgba(92,110,248,.06)}
+.step.active{color:var(--ac);border-left-color:var(--ac);background:rgba(92,110,248,.1)}
+.step.done{color:var(--gr)}.step.done .dot{background:var(--gr);border-color:var(--gr);color:#000}
+.dot{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--mono);flex-shrink:0}
+/* Main */
+.main{display:flex;flex-direction:column}
+.topbar{padding:16px 32px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:10}
+.topbar h2{font-size:17px;font-weight:800}
+.badge{font-family:var(--mono);font-size:10px;background:rgba(92,110,248,.15);color:var(--ac);border:1px solid rgba(92,110,248,.3);padding:3px 10px;border-radius:20px}
+.content{padding:28px 32px;flex:1;max-width:880px}
+/* Forms */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g1{display:grid;grid-template-columns:1fr;gap:14px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}
+.f input,.f textarea,.f select{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);color:var(--tx);font-family:var(--ui);font-size:13px;padding:8px 11px;outline:none;transition:border-color .15s;width:100%}
+.f input:focus,.f textarea:focus,.f select:focus{border-color:var(--ac)}
+.f textarea{resize:vertical;min-height:76px}
+.hint{font-size:10px;color:var(--mu);margin-top:2px}
+.div{border:none;border-top:1px solid var(--bd);margin:20px 0}
+/* Upload */
+.upload{border:2px dashed var(--bd);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.upload:hover,.upload.drag{border-color:var(--ac);background:rgba(92,110,248,.04)}
+.upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.upload-icon{font-size:28px;margin-bottom:6px}
+.upload h4{font-size:13px;font-weight:700}.upload p{font-size:11px;color:var(--mu);margin-top:3px}
+.flist{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.fitem{background:var(--sf2);border:1px solid var(--bd);border-radius:5px;padding:6px 11px;display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.fitem span{color:var(--mu);font-family:var(--mono)}
+/* Cards */
+.card{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:12px}
+.card-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-info strong{font-size:12px;display:block}.card-info span{font-size:11px;color:var(--mu)}
+.bico{background:none;border:1px solid var(--bd);color:var(--mu);border-radius:5px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:12px;flex-shrink:0}
+.bico:hover{border-color:var(--ac2);color:var(--ac2)}
+/* Tech grid */
+.tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.tc{background:var(--sf2);border:2px solid var(--bd);border-radius:var(--r);padding:12px;cursor:pointer;transition:all .15s;position:relative}
+.tc:hover{border-color:var(--ac)}.tc.ok{border-color:var(--gr);background:rgba(61,255,160,.04)}
+.tc.ok::after{content:'✓';position:absolute;top:7px;right:9px;color:var(--gr);font-weight:700}
+.tc-cat{font-size:10px;color:var(--ac);font-family:var(--mono);text-transform:uppercase}
+.tc-name{font-size:12px;font-weight:700;margin:3px 0}
+.tc-desc{font-size:11px;color:var(--mu);line-height:1.5;margin-top:4px}
+.tc-logo{margin-top:8px;display:flex;align-items:center;gap:7px}
+.tc-logo img{height:28px;object-fit:contain;border-radius:3px}
+.lbtn{font-size:10px;padding:3px 8px;background:var(--sf);border:1px solid var(--bd);border-radius:4px;cursor:pointer;color:var(--mu)}
+.lbtn:hover{border-color:var(--ac);color:var(--ac)}
+.lfi{display:none}
+/* Task table */
+.task-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.task-table th{background:var(--sf2);padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mu);border-bottom:1px solid var(--bd)}
+.task-table td{padding:8px 10px;border-bottom:1px solid var(--bd);vertical-align:top}
+.task-table tr:hover td{background:rgba(92,110,248,.04)}
+.task-table input,.task-table select{background:var(--sf2);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:11px;padding:4px 7px;width:100%}
+.pill{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-family:var(--mono)}
+.pill-sec{background:rgba(92,110,248,.15);color:var(--ac)}
+/* Buttons */
+.brow{display:flex;gap:9px;margin-top:24px}
+.btn{padding:9px 20px;border-radius:var(--r);font-family:var(--ui);font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+.bp{background:var(--ac);color:#fff}.bp:hover{background:#4a5ce0;transform:translateY(-1px)}
+.bo{background:transparent;color:var(--tx);border:1px solid var(--bd)}.bo:hover{border-color:var(--ac);color:var(--ac)}
+.bgen{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;padding:11px 28px;font-size:14px;box-shadow:0 4px 20px rgba(92,110,248,.4)}.bgen:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(92,110,248,.5)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+/* Alerts */
+.al{padding:10px 14px;border-radius:var(--r);font-size:12px;margin-top:10px}
+.al-info{background:rgba(92,110,248,.1);border:1px solid rgba(92,110,248,.3);color:var(--ac)}
+.al-warn{background:rgba(245,216,78,.1);border:1px solid rgba(245,216,78,.3);color:var(--yl)}
+.al-ok{background:rgba(61,255,160,.1);border:1px solid rgba(61,255,160,.3);color:var(--gr)}
+/* Terminal */
+.term{background:#04060b;border:1px solid var(--bd);border-radius:var(--r);font-family:var(--mono);font-size:11px;padding:14px;max-height:260px;overflow-y:auto;margin-top:16px}
+.tl{padding:1px 0;line-height:1.7}
+.tl.i{color:var(--tx)}.tl.ok{color:var(--gr)}.tl.er{color:#ff5f6d}.tl.pe{color:var(--ac)}
+.tp{color:var(--mu);margin-right:5px}
+.blink{animation:bk 1s step-end infinite}@keyframes bk{50%{opacity:0}}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.stat{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:12px}
+.slabel{font-size:9px;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.sval{font-size:18px;font-weight:800;margin-top:3px;font-family:var(--mono)}
+.sval.gr{color:var(--gr)}.sval.bl{color:var(--ac)}.sval.or{color:var(--ac2)}.sval.yl{color:var(--yl)}
+/* Progress */
+.pw{background:var(--bd);border-radius:4px;height:3px;margin-top:12px;overflow:hidden}
+.pb{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .5s ease}
+/* Result */
+.rbox{background:var(--sf2);border:1px solid var(--gr);border-radius:var(--r);padding:20px;margin-top:16px}
+.rbox h4{font-size:14px;font-weight:700;color:var(--gr);margin-bottom:12px}
+.dlbtn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:var(--r);font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;border:none;margin-right:8px;text-decoration:none}
+.dlzip{background:linear-gradient(135deg,var(--ac),#7c5cde);color:#fff}.dlzip:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(92,110,248,.4)}
+.dlpdf{background:var(--sf);border:1px solid var(--bd);color:var(--tx)}.dlpdf:hover{border-color:var(--ac2);color:var(--ac2)}
+/* Extract spinner */
+.xing{display:flex;align-items:center;gap:9px;padding:14px;background:rgba(92,110,248,.07);border:1px solid rgba(92,110,248,.2);border-radius:var(--r);margin-top:10px}
+.spin{width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.mt10{margin-top:10px}.mt16{margin-top:16px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+/* Section header */
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
+.si{width:32px;height:32px;border-radius:7px;background:rgba(92,110,248,.15);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.sh h3{font-size:14px;font-weight:700}.sh p{font-size:11px;color:var(--mu);margin-top:2px}
+/* Tags */
+.tw{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:6px 9px;display:flex;flex-wrap:wrap;gap:4px;cursor:text;min-height:38px;transition:border-color .15s}
+.tw:focus-within{border-color:var(--ac)}
+.tag{background:rgba(92,110,248,.2);color:var(--ac);border-radius:3px;padding:2px 7px;font-size:10px;font-family:var(--mono);display:flex;align-items:center;gap:3px}
+.tag button{background:none;border:none;color:inherit;cursor:pointer;font-size:12px;line-height:1}
+.tw input{background:none;border:none;outline:none;color:var(--tx);font-size:12px;font-family:var(--ui);flex:1;min-width:80px;padding:1px 3px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="logo"><h1>PFE <span>Agent</span></h1><p>ENSA Marrakech · AI Report Builder</p></div>
+  <nav class="steps" id="nav">
+    <div class="step active" data-s="0" onclick="go(0)"><div class="dot">1</div><span>Identification</span></div>
+    <div class="step" data-s="1" onclick="go(1)"><div class="dot">2</div><span>Projet & Entreprise</span></div>
+    <div class="step" data-s="2" onclick="go(2)"><div class="dot">3</div><span>Documentation stage</span></div>
+    <div class="step" data-s="3" onclick="go(3)"><div class="dot">4</div><span>Tâches & Gantt</span></div>
+    <div class="step" data-s="4" onclick="go(4)"><div class="dot">5</div><span>Technologies & Logos</span></div>
+    <div class="step" data-s="5" onclick="go(5)"><div class="dot">6</div><span>Références</span></div>
+    <div class="step" data-s="6" onclick="go(6)"><div class="dot">7</div><span>Génération</span></div>
+  </nav>
+</aside>
+<main class="main">
+<div class="topbar"><h2 id="pgTitle">Identification</h2><div class="badge" id="pgBadge">Étape 1 / 7</div></div>
+<div class="content">
+
+<!-- ── STEP 0: Identification ──────────────────────────────────── -->
+<div id="s0">
+  <div class="sh"><div class="si">🎓</div><div><h3>Identification</h3><p>Étudiant(s), encadrants, école, dates</p></div></div>
+  <div class="g2">
+    <div class="f" style="grid-column:1/-1"><label>Nom(s) des étudiants * <span style="color:var(--mu);font-weight:400">(un par ligne)</span></label>
+      <textarea id="students_raw" rows="3" placeholder="Hicham BOUTOUBA&#10;Mohamed JOUHARI"></textarea></div>
+    <div class="f"><label>Encadrant entreprise *</label><input id="sup_company" placeholder="Mme Yousra LAMTIGUI (Evolvity Partners)"/></div>
+    <div class="f"><label>Encadrant ENSA *</label><input id="sup_school" placeholder="Pr. Adnane LATIF (ENSA Marrakech)"/></div>
+    <div class="f" style="grid-column:1/-1"><label>Filière</label><input id="filiere" value="Génie Cyber-Défense et Systèmes de Télécommunications Embarqués"/></div>
+    <div class="f"><label>Année académique</label><input id="acad_year" value="2024 - 2025"/></div>
+    <div class="f"><label>Date de soutenance</label><input id="date_sout" placeholder="07/01/2025"/></div>
+    <div class="f"><label>Date début stage</label><input id="date_deb" value="01/07/2025"/></div>
+    <div class="f"><label>Date fin stage</label><input id="date_fin" value="31/08/2025"/></div>
+    <div class="f" style="grid-column:1/-1"><label>Membres du jury <span style="color:var(--mu);font-weight:400">(un par ligne)</span></label>
+      <textarea id="jury_raw" rows="2" placeholder="Pr. ACHBAROU Omar&#10;Pr. ATLAS Abdelghafour"></textarea></div>
+  </div>
+  <div class="brow"><button class="btn bp" onclick="go(1)">Suivant →</button></div>
+</div>
+
+<!-- ── STEP 1: Project ──────────────────────────────────────────── -->
+<div id="s1" class="hidden">
+  <div class="sh"><div class="si">🏢</div><div><h3>Projet & Organisme d'accueil</h3><p>Titre, description, entreprise, remerciements</p></div></div>
+  <div class="g1">
+    <div class="f"><label>Titre du projet *</label><input id="proj_title" placeholder="Mise en œuvre d'une Architecture DevSecOps pour une Plateforme de Gestion de Résidences"/></div>
+    <div class="f"><label>Description du projet *</label><textarea id="proj_desc" rows="4" placeholder="Le projet consiste à concevoir et développer une plateforme..."></textarea></div>
+    <div class="f"><label>Problématique centrale *</label><textarea id="problematique" rows="2" placeholder="Comment concevoir et déployer une application sécurisée en intégrant l'approche DevSecOps ?"></textarea></div>
+  </div>
+  <div class="div"></div>
+  <div class="g2">
+    <div class="f"><label>Nom de l'entreprise *</label><input id="co_name" placeholder="Evolvity Partners"/></div>
+    <div class="f"><label>Secteur</label><input id="co_sector" placeholder="Cybersécurité, IT, Conseil..."/></div>
+    <div class="f" style="grid-column:1/-1"><label>Description entreprise</label><textarea id="co_desc" rows="2" placeholder="Cabinet de conseil spécialisé dans la sécurité..."></textarea></div>
+  </div>
+  <div class="div"></div>
+  <div class="g2">
+    <div class="f"><label>Remerciements</label><textarea id="remerciments" rows="3" placeholder="Nous remercions Mme ... pour son encadrement précieux..."></textarea></div>
+    <div class="f"><label>Dédicaces <span style="color:var(--mu);font-weight:400">(une par ligne)</span></label>
+      <textarea id="ded_raw" rows="3" placeholder="À nos chers parents...&#10;À nos familles..."></textarea></div>
+  </div>
+  <div class="brow"><button class="btn bo" onclick="go(0)">← Retour</button><button class="btn bp" onclick="go(2)">Suivant →</button></div>
+</div>
+
+<!-- ── STEP 2: Upload docs ──────────────────────────────────────── -->
+<div id="s2" class="hidden">
+  <div class="sh"><div class="si">📄</div><div><h3>Documentation de stage</h3><p>L'IA extrait technologies, tâches et modules automatiquement</p></div></div>
+  <div class="al al-info">💡 Importez tous vos documents : rapports intermédiaires, specs, notes techniques. L'agent extrait les technologies, tâches (pour le Gantt), modules implémentés, résultats.</div>
+  <div class="upload mt10" id="dz" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="hdrop(event)">
+    <input type="file" id="docf" multiple accept=".pdf,.txt,.md" onchange="hfiles(event)"/>
+    <div class="upload-icon">📁</div>
+    <h4>Glissez vos fichiers ou cliquez pour parcourir</h4>
+    <p>PDF, TXT, MD — rapports, documentation technique, notes de réunion...</p>
+  </div>
+  <div class="flist" id="flist"></div>
+  <div id="xbtnwrap" class="hidden mt10">
+    <button class="btn bp" onclick="runExtract()">🔍 Analyser les documents</button>
+  </div>
+  <div id="xing" class="xing hidden"><div class="spin"></div><span>Analyse en cours... (20-40 secondes)</span></div>
+  <div id="xres" class="hidden mt10"><div class="al al-ok" id="xsummary"></div></div>
+  <div class="brow"><button class="btn bo" onclick="go(1)">← Retour</button><button class="btn bp" onclick="go(3)">Suivant →</button></div>
+</div>
+
+<!-- ── STEP 3: Tasks review + Gantt ────────────────────────────── -->
+<div id="s3" class="hidden">
+  <div class="sh"><div class="si">📊</div><div><h3>Tâches & Diagramme de Gantt</h3><p>Vérifiez les tâches extraites — elles génèrent le Gantt automatiquement</p></div></div>
+  <div class="al al-warn" id="taskAlert" class="hidden"></div>
+  <p style="font-size:12px;color:var(--mu);margin-bottom:8px">Modifiez les titres et durées. Le Gantt sera généré dans le Chapitre 1.</p>
+  <table class="task-table" id="taskTable">
+    <thead><tr><th style="width:35%">Titre de la tâche</th><th style="width:40%">Description</th><th style="width:12%">Durée (sem.)</th><th style="width:13%">Outils</th></tr></thead>
+    <tbody id="taskBody"></tbody>
+  </table>
+  <div class="mt10" style="display:flex;gap:8px">
+    <button class="btn bo" style="font-size:12px" onclick="addTaskRow()">+ Ajouter une tâche</button>
+    <button class="btn bo" style="font-size:12px" onclick="clearTasks()">🗑 Vider</button>
+  </div>
+  <div class="brow"><button class="btn bo" onclick="go(2)">← Retour</button><button class="btn bp" onclick="saveTasks();go(4)">Confirmer & Suivant →</button></div>
+</div>
+
+<!-- ── STEP 4: Tech confirmation ───────────────────────────────── -->
+<div id="s4" class="hidden">
+  <div class="sh"><div class="si">⚙️</div><div><h3>Technologies & Logos</h3><p>Confirmez et uploadez les logos pour le Chapitre 4</p></div></div>
+  <div class="al al-warn" id="techAlert">Aucune technologie extraite. Ajoutez-les manuellement.</div>
+  <p style="font-size:11px;color:var(--mu);margin-bottom:8px">Cliquez pour confirmer/déconfirmer. Uploadez le logo de chaque technologie.</p>
+  <div class="tg" id="tgrid"></div>
+  <div class="div"></div>
+  <div style="font-size:12px;font-weight:700;margin-bottom:8px">➕ Ajouter manuellement</div>
+  <div class="g2">
+    <div class="f"><label>Nom *</label><input id="mn_name" placeholder="ex: Docker"/></div>
+    <div class="f"><label>Catégorie</label>
+      <select id="mn_cat"><option value="langage">Langage</option><option value="framework">Framework</option><option value="outil">Outil</option><option value="base_de_données">Base de données</option><option value="sécurité">Sécurité</option><option value="devops">DevOps</option><option value="cloud">Cloud</option><option value="autre">Autre</option></select></div>
+    <div class="f" style="grid-column:1/-1"><label>Description</label><input id="mn_desc" placeholder="Description technique courte"/></div>
+    <div class="f" style="grid-column:1/-1"><label>Justification</label><input id="mn_just" placeholder="Pourquoi ce choix pour ce projet ?"/></div>
+  </div>
+  <button class="btn bo mt10" onclick="addManTech()">+ Ajouter</button>
+  <div class="brow"><button class="btn bo" onclick="go(3)">← Retour</button><button class="btn bp" onclick="go(5)">Confirmer →</button></div>
+</div>
+
+<!-- ── STEP 5: References ───────────────────────────────────────── -->
+<div id="s5" class="hidden">
+  <div class="sh"><div class="si">📚</div><div><h3>Références bibliographiques</h3><p>Sources citées dans le rapport (BibTeX)</p></div></div>
+  <div id="refListEl" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+  <div class="card mt10">
+    <div class="g2">
+      <div class="f"><label>Type</label>
+        <select id="rt"><option value="website">🌐 Site web</option><option value="book">📖 Livre</option><option value="article">📄 Article</option><option value="thesis">🎓 Thèse</option></select></div>
+      <div class="f"><label>Année</label><input id="ry" placeholder="2025"/></div>
+      <div class="f" style="grid-column:1/-1"><label>Auteur(s)</label><input id="rau" placeholder="Prénom NOM"/></div>
+      <div class="f" style="grid-column:1/-1"><label>Titre *</label><input id="rti" placeholder="Titre de la référence"/></div>
+      <div class="f" style="grid-column:1/-1"><label>URL / Éditeur</label><input id="rex" placeholder="https://... ou Nom éditeur"/></div>
+    </div>
+    <button class="btn bo mt10" onclick="addRef()">+ Ajouter</button>
+  </div>
+  <div class="brow"><button class="btn bo" onclick="go(4)">← Retour</button><button class="btn bp" onclick="go(6)">Suivant →</button></div>
+</div>
+
+<!-- ── STEP 6: Generation ───────────────────────────────────────── -->
+<div id="s6" class="hidden">
+  <div class="sh"><div class="si">🚀</div><div><h3>Génération du rapport</h3><p>L'agent génère toutes les sections et produit l'archive Overleaf</p></div></div>
+  <div class="stats">
+    <div class="stat"><div class="slabel">Sections</div><div class="sval bl" id="stSec">0/12</div></div>
+    <div class="stat"><div class="slabel">Technologies</div><div class="sval yl" id="stTech">0</div></div>
+    <div class="stat"><div class="slabel">Tâches Gantt</div><div class="sval or" id="stTask">0</div></div>
+    <div class="stat"><div class="slabel">Statut</div><div class="sval bl" id="stStat">Prêt</div></div>
+  </div>
+  <div class="pw"><div class="pb" id="pb" style="width:0%"></div></div>
+  <div class="term" id="term">
+    <div class="tl pe"><span class="tp">$</span>Prêt. Cliquez sur Générer.<span class="blink"> ▊</span></div>
+  </div>
+  <div id="rp" class="hidden">
+    <div class="rbox">
+      <h4>✅ Rapport généré avec succès !</h4>
+      <button class="dlbtn dlzip" id="dlzBtn" onclick="dlZip()">⬇ Télécharger archive LaTeX (.zip)</button>
+      <a class="dlbtn dlpdf" id="dlpBtn" href="#" target="_blank" style="display:none">⬇ PDF compilé</a>
+      <div class="mt10" style="font-size:11px;color:var(--mu)">
+        Archive Overleaf-ready : <code>main.tex</code> · <code>title.tex</code> · <code>Chapters/</code> · <code>logo/</code> · <code>References.bib</code><br/>
+        <strong>Overleaf</strong> → New Project → Upload Project → sélectionner le ZIP → compiler main.tex
+      </div>
+    </div>
+  </div>
+  <div class="brow">
+    <button class="btn bo" onclick="go(5)">← Retour</button>
+    <button class="btn bgen" id="genBtn" onclick="startGen()">⚡ Générer le rapport complet</button>
+  </div>
+</div>
+
+</div></main></div>
+
+<script>
+const API='http://localhost:8000';
+const META=[
+  {t:'Identification',b:'Étape 1 / 7'},
+  {t:'Projet & Entreprise',b:'Étape 2 / 7'},
+  {t:'Documentation de stage',b:'Étape 3 / 7'},
+  {t:'Tâches & Gantt',b:'Étape 4 / 7'},
+  {t:'Technologies & Logos',b:'Étape 5 / 7'},
+  {t:'Références',b:'Étape 6 / 7'},
+  {t:'Génération',b:'Étape 7 / 7'},
+];
+let cur=0, docs=[], extracted={}, techList=[], taskList=[], refList=[], modules=[], jobId=null, pollT=null, lastPL=0;
+
+function go(n){
+  document.getElementById('s'+cur).classList.add('hidden');
+  document.querySelectorAll('.step').forEach((el,i)=>{el.classList.remove('active');i<n?el.classList.add('done'):el.classList.remove('done');});
+  cur=n;
+  document.getElementById('s'+n).classList.remove('hidden');
+  document.querySelectorAll('.step')[n].classList.add('active');
+  document.getElementById('pgTitle').textContent=META[n].t;
+  document.getElementById('pgBadge').textContent=META[n].b;
+  if(n===3) renderTaskTable();
+  if(n===4) renderTechGrid();
+  if(n===6) updateStats();
+}
+
+// ── Step 2: File upload ──────────────────────────────────────────────────────
+function hdrop(e){e.preventDefault();document.getElementById('dz').classList.remove('drag');addDocs(Array.from(e.dataTransfer.files));}
+function hfiles(e){addDocs(Array.from(e.target.files));}
+function addDocs(files){files.forEach(f=>{if(!docs.find(x=>x.name===f.name))docs.push(f);});renderFlist();}
+function renderFlist(){
+  document.getElementById('flist').innerHTML=docs.map((f,i)=>`
+    <div class="fitem"><span>📄 ${esc(f.name)}</span><span>${(f.size/1024).toFixed(0)}KB <button class="bico" onclick="docs.splice(${i},1);renderFlist()">×</button></span></div>`).join('');
+  document.getElementById('xbtnwrap').classList.toggle('hidden',docs.length===0);
+}
+async function runExtract(){
+  if(!docs.length) return;
+  document.getElementById('xbtnwrap').classList.add('hidden');
+  document.getElementById('xing').classList.remove('hidden');
+  document.getElementById('xres').classList.add('hidden');
+  const fd=new FormData();
+  docs.forEach(f=>fd.append('files',f));
+  try{
+    const r=await fetch(`${API}/extract-docs`,{method:'POST',body:fd});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    extracted=await r.json();
+    modules=extracted.modules||[];
+    // Populate task list from extraction
+    taskList=(extracted.tasks||[]).map(t=>({...t,confirmed:true}));
+    // Populate tech list
+    (extracted.technologies||[]).forEach(t=>{
+      if(!techList.find(x=>x.name.toLowerCase()===t.name.toLowerCase()))
+        techList.push({...t,confirmed:true,logo_file:null,logo_fn:null});
+    });
+    document.getElementById('xsummary').textContent=
+      `✅ ${(extracted.technologies||[]).length} technologies · ${taskList.length} tâches · ${modules.length} modules identifiés.`;
+    document.getElementById('xres').classList.remove('hidden');
+  }catch(e){
+    document.getElementById('xsummary').textContent=`❌ ${e.message} — vérifiez que le serveur tourne sur le port 8000.`;
+    document.getElementById('xres').classList.remove('hidden');
+  } finally {
+    document.getElementById('xing').classList.add('hidden');
+    document.getElementById('xbtnwrap').classList.remove('hidden');
+  }
+}
+
+// ── Step 3: Task table ───────────────────────────────────────────────────────
+function renderTaskTable(){
+  const al=document.getElementById('taskAlert');
+  if(taskList.length===0){al.textContent='⚠ Aucune tâche extraite — ajoutez-les manuellement ci-dessous.';al.classList.remove('hidden');}
+  else al.classList.add('hidden');
+  const tb=document.getElementById('taskBody');
+  tb.innerHTML=taskList.map((t,i)=>`
+    <tr>
+      <td><input value="${esc(t.title||'')}" onchange="taskList[${i}].title=this.value" style="font-size:11px"/></td>
+      <td><input value="${esc(t.description||'')}" onchange="taskList[${i}].description=this.value" style="font-size:11px"/></td>
+      <td><input type="number" min="1" max="8" value="${t.duration_weeks||2}" onchange="taskList[${i}].duration_weeks=+this.value" style="width:50px"/></td>
+      <td style="display:flex;align-items:center;gap:4px">
+        <span class="pill pill-sec">${esc((t.tools_used||[]).join(', ').substring(0,20))}</span>
+        <button class="bico" onclick="taskList.splice(${i},1);renderTaskTable()">×</button>
+      </td>
+    </tr>`).join('');
+}
+function addTaskRow(){
+  taskList.push({title:'Nouvelle tâche',description:'',duration_weeks:2,tools_used:[]});
+  renderTaskTable();
+}
+function clearTasks(){taskList=[];renderTaskTable();}
+function saveTasks(){/* taskList already up to date via onchange */}
+
+// ── Step 4: Tech grid ────────────────────────────────────────────────────────
+function renderTechGrid(){
+  document.getElementById('techAlert').classList.toggle('hidden',techList.length>0);
+  document.getElementById('tgrid').innerHTML=techList.map((t,i)=>`
+    <div class="tc ${t.confirmed?'ok':''}" id="tc${i}" onclick="toggleT(${i},event)">
+      <div class="tc-cat">${esc(t.category||'outil')}</div>
+      <div class="tc-name">${esc(t.name)}</div>
+      <div class="tc-desc">${esc((t.description||'').substring(0,70))}${(t.description||'').length>70?'...':''}</div>
+      <div class="tc-logo" onclick="event.stopPropagation()">
+        ${t.logo_file?`<img src="${t.logo_file}" alt="${t.name}"/>`:''}
+        <label class="lbtn" for="li${i}">📷 Logo</label>
+        <input class="lfi" type="file" id="li${i}" accept="image/*" onchange="hLogo(event,${i})"/>
+      </div>
+    </div>`).join('');
+}
+function toggleT(i,e){if(e.target.tagName==='INPUT'||e.target.tagName==='LABEL')return;techList[i].confirmed=!techList[i].confirmed;renderTechGrid();}
+function hLogo(e,i){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=ev=>{techList[i].logo_file=ev.target.result;techList[i].logo_fn=f.name;renderTechGrid();};r.readAsDataURL(f);
+}
+function addManTech(){
+  const n=document.getElementById('mn_name').value.trim();if(!n)return;
+  techList.push({name:n,category:document.getElementById('mn_cat').value,
+    description:document.getElementById('mn_desc').value.trim(),
+    justification:document.getElementById('mn_just').value.trim(),
+    confirmed:true,logo_file:null,logo_fn:null});
+  ['mn_name','mn_desc','mn_just'].forEach(id=>document.getElementById(id).value='');
+  renderTechGrid();
+}
+
+// ── Step 5: References ───────────────────────────────────────────────────────
+function addRef(){
+  const ti=document.getElementById('rti').value.trim();if(!ti)return;
+  refList.push({type:gv('rt'),author:gv('rau'),title:ti,year:gv('ry'),extra:gv('rex')});
+  renderRefs();['rau','rti','ry','rex'].forEach(id=>document.getElementById(id).value='');
+}
+function renderRefs(){
+  const icons={book:'📖',article:'📄',website:'🌐',thesis:'🎓'};
+  document.getElementById('refListEl').innerHTML=refList.map((r,i)=>`
+    <div class="card card-row">
+      <div class="card-info"><strong>${icons[r.type]||'📄'} ${esc(r.title)}</strong><br/><span>${esc(r.author)} · ${r.year}</span></div>
+      <button class="bico" onclick="refList.splice(${i},1);renderRefs()">×</button>
+    </div>`).join('');
+}
+
+// ── Step 6: Generation ───────────────────────────────────────────────────────
+function updateStats(){
+  const ct=techList.filter(t=>t.confirmed);
+  document.getElementById('stTech').textContent=ct.length;
+  document.getElementById('stTask').textContent=taskList.length;
+}
+async function startGen(){
+  const btn=document.getElementById('genBtn');btn.disabled=true;
+  document.getElementById('rp').classList.add('hidden');
+  const students=gv('students_raw').split('\n').map(s=>s.trim()).filter(Boolean);
+  const dedicaces=gv('ded_raw').split('\n').map(s=>s.trim()).filter(Boolean);
+  const jury=gv('jury_raw').split('\n').map(s=>s.trim()).filter(Boolean);
+  const confTechs=techList.filter(t=>t.confirmed).map(t=>({name:t.name,category:t.category,description:t.description,justification:t.justification,logo_filename:t.logo_fn||null}));
+  const payload={
+    student_name:students[0]||'',students,
+    supervisor_company:gv('sup_company'),supervisor_school:gv('sup_school'),
+    academic_year:gv('acad_year'),filiere:gv('filiere'),
+    date_debut:gv('date_deb'),date_fin:gv('date_fin'),date_soutenance:gv('date_sout'),
+    jury_members:jury,
+    project_title:gv('proj_title'),project_description:gv('proj_desc'),problematique:gv('problematique'),
+    company_name:gv('co_name'),company_sector:gv('co_sector'),company_description:gv('co_desc'),
+    remerciements:gv('remerciments'),dedicaces,
+    references:refList,
+    confirmed_technologies:confTechs,
+    extracted_info:extracted,modules,
+    tasks:taskList,
+    company_logo_filename:'logo_company.jpg',
+  };
+  if(!payload.project_title||!payload.company_name||!students.length){
+    tlog('❌ Champs obligatoires manquants (Titre, Entreprise, Étudiant)','er');btn.disabled=false;return;
+  }
+  clearTerm();
+  document.getElementById('stStat').textContent='En cours...';
+  tlog(`🚀 Génération — "${payload.project_title}"`, 'pe');
+  tlog(`👤 ${students.join(' & ')}`, 'i');
+  tlog(`⚙️  ${confTechs.length} technologies | ${taskList.length} tâches | ${modules.length} modules`, 'i');
+  try{
+    const r=await fetch(`${API}/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d=await r.json();jobId=d.job_id;
+    tlog(`🔑 Job ${d.job_id.substring(0,8)}...`, 'i');
+    pollJob(d.job_id);
+  }catch(e){tlog(`❌ ${e.message}`,'er');tlog('   Vérifiez que docker-compose est actif sur le port 8000','er');btn.disabled=false;}
+}
+function pollJob(id){
+  lastPL=0;
+  pollT=setInterval(async()=>{
+    try{
+      const r=await fetch(`${API}/jobs/${id}`);const j=await r.json();
+      const pg=j.progress||[];
+      for(let i=lastPL;i<pg.length;i++){const m=pg[i];tlog(m,m.includes('✅')||m.includes('✓')?'ok':m.includes('❌')||m.includes('⚠')?'er':'i');}
+      lastPL=pg.length;
+      document.getElementById('pb').style.width=Math.min((lastPL/15)*100,92)+'%';
+      document.getElementById('stSec').textContent=`${Math.min(lastPL,12)}/12`;
+      if(j.status==='done'){clearInterval(pollT);onDone(j.result,id);}
+      else if(j.status==='error'){clearInterval(pollT);onErr(j.error);}
+    }catch(e){tlog(`⚠ ${e.message}`,'er');}
+  },2500);
+}
+function onDone(r,id){
+  document.getElementById('pb').style.width='100%';
+  document.getElementById('stStat').textContent='Terminé ✓';
+  document.getElementById('stStat').className='sval gr';
+  tlog('','i');tlog('✅ Archive LaTeX prête !','ok');
+  tlog(`📁 ${r.sections_count||12} sections — ${r.project_files?.length||0} fichiers`,'ok');
+  document.getElementById('dlzBtn').dataset.jid=id;
+  if(r.pdf_url){const b=document.getElementById('dlpBtn');b.href=`${API}${r.pdf_url}`;b.style.display='inline-flex';}
+  document.getElementById('rp').classList.remove('hidden');
+  document.getElementById('genBtn').disabled=false;
+}
+function onErr(e){document.getElementById('stStat').textContent='Erreur';document.getElementById('stStat').className='sval or';tlog(`❌ ${e}`,'er');document.getElementById('genBtn').disabled=false;}
+async function dlZip(){
+  const id=document.getElementById('dlzBtn').dataset.jid||jobId;if(!id)return;
+  try{
+    const r=await fetch(`${API}/jobs/${id}/zip`);if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`rapport_pfe_${id.substring(0,8)}.zip`;a.click();
+  }catch(e){tlog(`❌ ${e.message}`,'er');}
+}
+function tlog(m,c='i'){const t=document.getElementById('term');const d=document.createElement('div');d.className=`tl ${c}`;d.innerHTML=m?`<span class="tp">›</span> ${m}`:'';t.appendChild(d);t.scrollTop=t.scrollHeight;}
+function clearTerm(){document.getElementById('term').innerHTML='';}
+function gv(id){return(document.getElementById(id)||{}).value||'';}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
