@@ -53,20 +53,27 @@ class PFEOrchestrator:
         project_files = self.latex.build_project(self.sections, self.ctx)
         self._log(f"📁 {len(project_files)} fichiers LaTeX générés")
 
+        # Compile LaTeX with automatic error fixing
+        self._log("🔨 Compilation LaTeX avec correction automatique...")
+        single_tex = self.latex.build(self.sections, self.ctx)
+        compile_result = await self._compile_with_auto_fix(single_tex, project_files)
+
+        if compile_result["status"] != "success":
+            self._log("❌ Compilation échouée après tentatives de correction")
+            return {
+                "status": "error",
+                "message": "Compilation LaTeX échouée. Veuillez vérifier les erreurs et réessayer.",
+                "errors": compile_result.get("errors", []),
+                "pdf_url": None,
+                "zip_bytes": None,
+            }
+
         self._log("📦 Création de l'archive ZIP...")
         zip_bytes = self._build_zip(project_files)
 
-        # Try MCP compile (best-effort)
-        compile_result = {"status": "skipped"}
-        try:
-            single_tex = self.latex.build(self.sections, self.ctx)
-            compile_result = await self.mcp.compile(single_tex, project_files=project_files)
-        except Exception as e:
-            self._log(f"⚠️  Compilation MCP ignorée : {e}")
-
-        self._log(f"✅ Terminé — compilation: {compile_result['status']}")
+        self._log("✅ Terminé — compilation réussie avec PDF généré")
         return {
-            "status": compile_result["status"],
+            "status": "success",
             "pdf_url": compile_result.get("pdf_url"),
             "zip_bytes": zip_bytes,
             "project_files": list(project_files.keys()),
@@ -84,6 +91,49 @@ class PFEOrchestrator:
             )
             self.sections[key] = content
             self._log(f"   ✓ {cfg['title']} ({len(content)} car.)")
+
+    async def _compile_with_auto_fix(self, tex: str, project_files: dict, max_attempts: int = 3) -> dict[str, Any]:
+        """Compile LaTeX with automatic error fixing."""
+        current_tex = tex
+        
+        for attempt in range(max_attempts):
+            self._log(f"🔨 Tentative de compilation {attempt + 1}/{max_attempts}...")
+            
+            try:
+                result = await self.mcp.compile(current_tex, project_files=project_files)
+                
+                if result["status"] == "success":
+                    self._log(f"✅ Compilation réussie à la tentative {attempt + 1}")
+                    return result
+                
+                # Compilation failed with errors
+                errors = result.get("errors", [])
+                if not errors or attempt == max_attempts - 1:
+                    self._log(f"❌ Compilation échouée après {attempt + 1} tentatives")
+                    return result
+                
+                self._log(f"⚠️  {len(errors)} erreurs détectées, tentative de correction automatique...")
+                current_tex = await self.llm.fix_latex(current_tex, errors)
+                
+                # Update main.tex in project_files with fixed content
+                if "main.tex" in project_files:
+                    project_files["main.tex"] = current_tex
+                
+            except Exception as e:
+                self._log(f"❌ Erreur lors de la compilation : {e}")
+                if attempt == max_attempts - 1:
+                    return {
+                        "status": "error",
+                        "errors": [str(e)],
+                        "pdf_url": None,
+                    }
+        
+        return {
+            "status": "error",
+            "errors": ["Maximum compilation attempts reached"],
+            "pdf_url": None,
+        }
+
 
     def _build_zip(self, files: dict[str, str]) -> bytes:
         buf = io.BytesIO()

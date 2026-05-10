@@ -143,7 +143,7 @@ async def mcp_endpoint(request: Request):
 @app.get("/pdf/{filename}")
 async def serve_pdf(filename: str):
     """Serve compiled PDF files."""
-    pdf_path = WORKSPACE / filename
+    pdf_path = WORKSPACE/filename
     if not pdf_path.exists():
         return JSONResponse(status_code=404, content={"error": "PDF not found"})
     return FileResponse(pdf_path, media_type="application/pdf")

@@ -13,7 +13,10 @@ import base64
 import uuid
 import asyncio
 import io
+import os
 from typing import Optional
+
+import httpx
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PFE Report AI Agent", version="2.0.0")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://mcp-server:8001").rstrip("/")
 
 app.add_middleware(
     CORSMiddleware,
@@ -177,6 +181,26 @@ async def download_zip(job_id: str):
         io.BytesIO(zip_bytes),
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename=rapport_pfe_{job_id[:8]}.zip"},
+    )
+
+
+# ── Proxy compiled PDF ───────────────────────────────────────────────────────
+@app.get("/pdf/{filename}")
+async def get_pdf(filename: str):
+    pdf_url = f"{MCP_SERVER_URL}/pdf/{filename}"
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.get(pdf_url)
+
+    if response.status_code == 404:
+        raise HTTPException(status_code=404, detail="PDF not found")
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Unable to fetch PDF from compiler service ({response.status_code})")
+
+    return StreamingResponse(
+        io.BytesIO(response.content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename={filename}"},
     )
 
 
